@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>兴业银行北京经开区中支 - 5月普惠储备余额动态看板</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 100%); color: #e8ecf1; min-height: 100vh; }
+.header { background: linear-gradient(90deg, rgba(0,51,102,0.9), rgba(0,82,148,0.9)); padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(0,150,255,0.3); }
+.header h1 { font-size: 22px; font-weight: 600; letter-spacing: 2px; }
+.header .subtitle { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.btn { background: rgba(0,150,255,0.2); border: 1px solid rgba(0,150,255,0.4); color: #9cc7ff; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.3s; white-space: nowrap; }
+.btn:hover { background: rgba(0,150,255,0.35); color: #fff; }
+.btn-primary { background: #0066cc; border-color: #0066cc; color: #fff; }
+.btn-primary:hover { background: #0077ee; }
+.container { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 20px 24px; position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+.card.begin::before { background: #3b82f6; }
+.card.end::before { background: #10b981; }
+.card.net::before { background: #f59e0b; }
+.card.rate::before { background: #8b5cf6; }
+.card .label { font-size: 13px; color: #8899b4; margin-bottom: 8px; }
+.card .value { font-size: 28px; font-weight: 700; }
+.card .unit { font-size: 14px; color: #8899b4; margin-left: 4px; }
+.card .change { font-size: 13px; margin-top: 4px; }
+.card .change.up { color: #ef4444; }
+.card .change.down { color: #22c55e; }
+.chart-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.chart-panel h3 { font-size: 16px; margin-bottom: 12px; color: #9cc7ff; }
+.chart-wrap { width: 100%; height: 450px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.charts-row .chart-wrap { height: 380px; }
+.data-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.data-panel h3 { font-size: 16px; margin-bottom: 12px; color: #9cc7ff; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: rgba(0,150,255,0.15); padding: 10px 14px; text-align: center; font-weight: 600; color: #9cc7ff; border-bottom: 2px solid rgba(0,150,255,0.3); white-space: nowrap; }
+td { padding: 10px 14px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+tr:hover td { background: rgba(255,255,255,0.04); }
+tr.total td { background: rgba(0,150,255,0.1); font-weight: 700; color: #9cc7ff; }
+tr.adjust td { color: #8899b4; }
+td.num { text-align: right; font-family: 'Consolas', 'Monaco', monospace; font-variant-numeric: tabular-nums; }
+td.positive { color: #ef4444; }
+td.negative { color: #22c55e; }
+.toggle-row { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.toggle-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #8899b4; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+.toggle-btn.active { background: rgba(0,150,255,0.25); border-color: rgba(0,150,255,0.5); color: #9cc7ff; }
+.footer { text-align: center; padding: 12px; font-size: 11px; color: #556; }
+.footer span { margin: 0 8px; }
+.upload-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; }
+.upload-overlay.show { display: flex; }
+.upload-box { background: #1a2a4a; border: 2px dashed rgba(0,150,255,0.4); border-radius: 16px; padding: 48px 64px; text-align: center; }
+.upload-box h3 { color: #9cc7ff; margin-bottom: 16px; }
+.upload-box .desc { color: #8899b4; font-size: 14px; margin-bottom: 20px; }
+#fileInput { display: none; }
+.update-time { font-size: 11px; color: #556; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>兴业银行北京经开区中支 · 普惠储备余额动态看板</h1>
+    <div class="subtitle">数据来源：5月储备.xlsx / 预测明细 · <span id="updateTime">--</span></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="toggleAdjust()" id="btnAdjust">显示调出人员</button>
+    <button class="btn" onclick="toggleTotal()" id="btnTotal">显示总计</button>
+    <button class="btn btn-primary" onclick="document.getElementById('uploadOverlay').classList.add('show')">📂 更新Excel数据</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 概览卡片 -->
+  <div class="cards">
+    <div class="card begin">
+      <div class="label">年初普惠余额</div>
+      <div class="value" id="cardBegin">--<span class="unit">万元</span></div>
+    </div>
+    <div class="card end">
+      <div class="label">5月末预测余额</div>
+      <div class="value" id="cardEnd">--<span class="unit">万元</span></div>
+    </div>
+    <div class="card net">
+      <div class="label">5月净增</div>
+      <div class="value" id="cardNet">--<span class="unit">万元</span></div>
+    </div>
+    <div class="card rate">
+      <div class="label">5月序时完成率</div>
+      <div class="value" id="cardRate">--<span class="unit">%</span></div>
+    </div>
+  </div>
+
+  <!-- 主图表：各支行年初 vs 5月余额对比 -->
+  <div class="chart-panel">
+    <h3>📊 各支行普惠余额：年初余额 vs 5月末预测余额（万元）</h3>
+    <div class="chart-wrap" id="chartMain"></div>
+  </div>
+
+  <!-- 净增 & 序时完成率 -->
+  <div class="charts-row">
+    <div class="chart-panel">
+      <h3>📈 5月净增变化（万元）</h3>
+      <div class="chart-wrap" id="chartNet"></div>
+    </div>
+    <div class="chart-panel">
+      <h3>🎯 5月序时完成率（%）</h3>
+      <div class="chart-wrap" id="chartSeq"></div>
+    </div>
+  </div>
+
+  <!-- 数据明细表 -->
+  <div class="data-panel">
+    <h3>📋 数据明细表</h3>
+    <div class="table-wrap">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>支行归属</th>
+            <th>年初余额（万元）</th>
+            <th>5月末预测余额（万元）</th>
+            <th>5月净增（万元）</th>
+            <th>5月序时完成率</th>
+            <th>变化趋势</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>兴业银行北京经济技术开发区中心支行 · 企金部</span>
+    <span>|</span>
+    <span>数据更新时间：<span id="footerTime">--</span></span>
+  </div>
+</div>
+
+<!-- 上传弹窗 -->
+<div class="upload-overlay" id="uploadOverlay">
+  <div class="upload-box">
+    <h3>📂 更新Excel数据</h3>
+    <p class="desc">请上传「5月储备.xlsx」文件，程序将自动提取「预测明细」sheet中的数据并更新图表。</p>
+    <label for="fileInput" class="btn btn-primary" style="display:inline-block;cursor:pointer;margin-bottom:12px;">选择文件</label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
+    <br>
+    <button class="btn" onclick="document.getElementById('uploadOverlay').classList.remove('show')">取消</button>
+  </div>
+</div>
+
+<script>
+// ============ 数据层 ============
+let rawData = [];
+let showAdjust = false;
+let showTotal = false;
+
+// 初始数据（从Excel提取）
+const INITIAL_DATA = [
+  { name: '房山支行', begin: 24245.00, end: 27260.00, net: 3015.00, seq: 1.7977, isTotal: false, isAdjust: false },
+  { name: '自贸支行', begin: 10458.00, end: 12698.00, net: 2240.00, seq: 1.7388, isTotal: false, isAdjust: false },
+  { name: '大兴支行', begin: 15142.23, end: 17346.84, net: 2204.61, seq: 1.3145, isTotal: false, isAdjust: false },
+  { name: '榆垡支行', begin: 2045.00, end: 3845.00, net: 1800.00, seq: 1.2865, isTotal: false, isAdjust: false },
+  { name: '营业部', begin: 20314.00, end: 19979.99, net: -334.01, seq: -0.1868, isTotal: false, isAdjust: false },
+  { name: '旧宫支行', begin: 25924.71, end: 23984.48, net: -1940.23, seq: -1.3598, isTotal: false, isAdjust: false },
+  { name: '礼贤支行', begin: 17537.22, end: 14373.13, net: -3164.09, seq: -2.8950, isTotal: false, isAdjust: false },
+  { name: '调出人员', begin: 9425.59, end: 5655.59, net: -3770.00, seq: null, isTotal: false, isAdjust: true },
+  { name: '总计', begin: 125091.76, end: 125143.03, net: 51.27, seq: 0.0050, isTotal: true, isAdjust: false }
+];
+
+rawData = INITIAL_DATA;
+// ============ 工具函数 ============
+function getFilteredData() {
+  return rawData.filter(d => {
+    if (!showAdjust && d.isAdjust) return false;
+    if (d.isTotal) return false; // 总计不在支行图表中显示
+    return true;
+  });
+}
+
+function getTotalRow() {
+  return rawData.find(d => d.isTotal);
+}
+
+function fmt(n, decimals = 2) {
+  if (n == null || isNaN(n)) return '--';
+  return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function now() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' +
+         String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+}
+
+// ============ 图表 ============
+let chartMain, chartNet, chartSeq;
+
+function initCharts() {
+  chartMain = echarts.init(document.getElementById('chartMain'), null, { devicePixelRatio: 2 });
+  chartNet = echarts.init(document.getElementById('chartNet'), null, { devicePixelRatio: 2 });
+  chartSeq = echarts.init(document.getElementById('chartSeq'), null, { devicePixelRatio: 2 });
+}
+
+function renderAll() {
+  renderCards();
+  renderMainChart();
+  renderNetChart();
+  renderSeqChart();
+  renderTable();
+  const t = now();
+  document.getElementById('updateTime').textContent = t;
+  document.getElementById('footerTime').textContent = t;
+}
+
+function renderCards() {
+  const total = getTotalRow();
+  document.getElementById('cardBegin').innerHTML = total ? fmt(total.begin, 0) + '<span class="unit">万元</span>' : '--';
+  document.getElementById('cardEnd').innerHTML = total ? fmt(total.end, 0) + '<span class="unit">万元</span>' : '--';
+  const net = total ? total.net : 0;
+  const netEl = document.getElementById('cardNet');
+  netEl.innerHTML = fmt(net, 0) + '<span class="unit">万元</span>';
+  const changeEl = netEl.parentElement.querySelector('.change');
+  if (changeEl) changeEl.remove();
+  if (net > 0) netEl.insertAdjacentHTML('afterend', '<div class="change up">较年初 +' + fmt(net, 0) + ' 万元</div>');
+  else if (net < 0) netEl.insertAdjacentHTML('afterend', '<div class="change down">较年初 ' + fmt(net, 0) + ' 万元</div>');
+  else netEl.insertAdjacentHTML('afterend', '<div class="change" style="color:#8899b4">较年初持平</div>');
+
+  document.getElementById('cardRate').innerHTML = total && total.seq != null ? fmt(total.seq * 100, 2) + '<span class="unit">%</span>' : '--';
+}
+
+function renderMainChart() {
+  const data = getFilteredData();
+  const names = data.map(d => d.name.replace('支行', '').replace('经济技术开发区',''));
+  const beginVals = data.map(d => d.begin);
+  const endVals = data.map(d => d.end);
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(10,22,40,0.95)',
+      borderColor: 'rgba(0,150,255,0.3)',
+      textStyle: { color: '#e8ecf1', fontSize: 13 },
+      formatter: function(params) {
+        let s = '<b>' + params[0].axisValue + '</b><br/>';
+        params.forEach(p => {
+          s += '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + p.color + ';margin-right:6px;"></span>';
+          s += p.seriesName + '：<b>' + fmt(p.value, 0) + '</b> 万元<br/>';
+        });
+        const d = data[params[0].dataIndex];
+        const net = d.net;
+        const color = net >= 0 ? '#ef4444' : '#22c55e';
+        s += '<span style="color:' + color + '">净增：' + (net >= 0 ? '+' : '') + fmt(net, 0) + ' 万元</span>';
+        return s;
+      }
+    },
+    legend: {
+      data: ['年初余额', '5月末预测余额'],
+      textStyle: { color: '#8899b4' },
+      top: 0
+    },
+    grid: { left: '3%', right: '4%', bottom: '8%', top: '12%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.15)' } },
+      axisLabel: { color: '#8899b4', fontSize: 12 },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      name: '万元',
+      nameTextStyle: { color: '#8899b4' },
+      axisLabel: { color: '#8899b4', formatter: v => (v/10000).toFixed(1) + '亿' },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }
+    },
+    series: [
+      {
+        name: '年初余额',
+        type: 'bar',
+        data: beginVals,
+        itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
+        barWidth: '30%',
+        label: { show: true, position: 'top', color: '#8899b4', fontSize: 10, formatter: p => fmt(p.value, 0) }
+      },
+      {
+        name: '5月末预测余额',
+        type: 'bar',
+        data: endVals,
+        itemStyle: { color: '#10b981', borderRadius: [4,4,0,0] },
+        barWidth: '30%',
+        label: { show: true, position: 'top', color: '#8899b4', fontSize: 10, formatter: p => fmt(p.value, 0) }
+      }
+    ]
+  };
+  chartMain.setOption(option, true);
+}
+
+function renderNetChart() {
+  const data = getFilteredData();
+  const names = data.map(d => d.name.replace('支行', '').replace('经济技术开发区',''));
+  const netVals = data.map(d => d.net);
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(10,22,40,0.95)',
+      borderColor: 'rgba(0,150,255,0.3)',
+      textStyle: { color: '#e8ecf1', fontSize: 13 },
+      formatter: function(params) {
+        const v = params[0].value;
+        const color = v >= 0 ? '#ef4444' : '#22c55e';
+        return '<b>' + params[0].axisValue + '</b><br/>5月净增：<span style="color:' + color + ';font-weight:bold">' + (v >= 0 ? '+' : '') + fmt(v, 0) + '</span> 万元';
+      }
+    },
+    grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.15)' } },
+      axisLabel: { color: '#8899b4', fontSize: 12 },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      name: '万元',
+      nameTextStyle: { color: '#8899b4' },
+      axisLabel: { color: '#8899b4', formatter: v => fmt(v, 0) },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }
+    },
+    series: [{
+      type: 'bar',
+      data: netVals.map(v => ({
+        value: v,
+        itemStyle: { color: v >= 0 ? '#ef4444' : '#22c55e', borderRadius: [4,4,0,0] }
+      })),
+      barWidth: '45%',
+      label: { show: true, position: 'top', color: '#8899b4', fontSize: 11, formatter: p => (p.value >= 0 ? '+' : '') + fmt(p.value, 0) }
+    }]
+  };
+  chartNet.setOption(option, true);
+}
+
+function renderSeqChart() {
+  const data = getFilteredData();
+  const names = data.map(d => d.name.replace('支行', '').replace('经济技术开发区',''));
+  const seqVals = data.map(d => d.seq != null ? d.seq * 100 : null);
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(10,22,40,0.95)',
+      borderColor: 'rgba(0,150,255,0.3)',
+      textStyle: { color: '#e8ecf1', fontSize: 13 },
+      formatter: function(params) {
+        const v = params[0].value;
+        if (v == null) return '<b>' + params[0].axisValue + '</b><br/>无数据';
+        const color = v >= 0 ? '#ef4444' : '#22c55e';
+        return '<b>' + params[0].axisValue + '</b><br/>序时完成率：<span style="color:' + color + ';font-weight:bold">' + fmt(v, 2) + '%</span>';
+      }
+    },
+    grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.15)' } },
+      axisLabel: { color: '#8899b4', fontSize: 12 },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      name: '%',
+      nameTextStyle: { color: '#8899b4' },
+      axisLabel: { color: '#8899b4', formatter: v => fmt(v, 1) + '%' },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }
+    },
+    series: [{
+      type: 'bar',
+      data: seqVals.map(v => {
+        if (v == null) return { value: null, itemStyle: { color: '#333' } };
+        return { value: v, itemStyle: { color: v >= 0 ? '#ef4444' : '#22c55e', borderRadius: [4,4,0,0] } };
+      }),
+      barWidth: '45%',
+      label: { show: true, position: 'top', color: '#8899b4', fontSize: 11, formatter: p => p.value != null ? fmt(p.value, 2) + '%' : '--' },
+      markLine: { silent: true, data: [{ yAxis: 100, label: { formatter: '100%', color: '#f59e0b' }, lineStyle: { color: '#f59e0b', type: 'dashed' } }] }
+    }]
+  };
+  chartSeq.setOption(option, true);
+}
+
+function renderTable() {
+  const data = getFilteredData();
+  const total = getTotalRow();
+  const allRows = [...data];
+  if (showTotal && total) allRows.push(total);
+
+  const tbody = document.querySelector('#dataTable tbody');
+  let html = '';
+  allRows.forEach(d => {
+    const cls = d.isTotal ? 'total' : (d.isAdjust ? 'adjust' : '');
+    const netCls = d.net > 0 ? 'positive' : (d.net < 0 ? 'negative' : '');
+    const seqCls = d.seq != null ? (d.seq >= 0 ? 'positive' : 'negative') : '';
+    const trend = d.net > 0 ? '📈 增长' : (d.net < 0 ? '📉 下降' : '➡ 持平');
+    html += '<tr class="' + cls + '">';
+    html += '<td>' + (d.isTotal ? '<b>📌 ' + d.name + '</b>' : d.name) + '</td>';
+    html += '<td class="num">' + fmt(d.begin, 2) + '</td>';
+    html += '<td class="num">' + fmt(d.end, 2) + '</td>';
+    html += '<td class="num ' + netCls + '">' + (d.net > 0 ? '+' : '') + fmt(d.net, 2) + '</td>';
+    html += '<td class="num ' + seqCls + '">' + (d.seq != null ? fmt(d.seq * 100, 2) + '%' : '--') + '</td>';
+    html += '<td>' + trend + '</td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+// ============ 交互 ============
+function toggleAdjust() {
+  showAdjust = !showAdjust;
+  document.getElementById('btnAdjust').classList.toggle('active', showAdjust);
+  document.getElementById('btnAdjust').textContent = showAdjust ? '隐藏调出人员' : '显示调出人员';
+  renderAll();
+}
+
+function toggleTotal() {
+  showTotal = !showTotal;
+  document.getElementById('btnTotal').classList.toggle('active', showTotal);
+  document.getElementById('btnTotal').textContent = showTotal ? '隐藏总计行' : '显示总计';
+  renderTable(); // 总计只影响表格，不影响图表
+}
+
+// ============ Excel上传联动 ============
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets['预测明细'];
+      if (!sheet) { alert('未找到「预测明细」sheet，请确认文件正确。'); return; }
+      const arr = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+      if (arr.length < 22) { alert('「预测明细」数据行数不足，请确认sheet结构。'); return; }
+
+      const newData = [];
+      for (let i = 13; i <= 21; i++) {
+        const row = arr[i];
+        if (!row || row.length < 3) continue;
+        const name = String(row[0] || '').trim();
+        const begin = parseFloat(row[1]) || 0;
+        const end = parseFloat(row[2]) || 0;
+        const seqVal = row[3] != null ? parseFloat(row[3]) : null;
+        const net = end - begin;
+        newData.push({
+          name,
+          begin,
+          end,
+          net,
+          seq: seqVal,
+          isTotal: name === '总计',
+          isAdjust: name === '调出人员'
+        });
+      }
+
+      if (newData.length < 2) { alert('解析数据不足，请检查「预测明细」sheet的第14-22行。'); return; }
+
+      rawData = newData;
+      document.getElementById('uploadOverlay').classList.remove('show');
+      renderAll();
+    } catch (err) {
+      alert('文件解析失败：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============ 响应式 ============
+window.addEventListener('resize', function() {
+  chartMain && chartMain.resize();
+  chartNet && chartNet.resize();
+  chartSeq && chartSeq.resize();
+});
+
+// ============ 启动 ============
+initCharts();
+renderAll();
+</script>
+</body>
+</html>
