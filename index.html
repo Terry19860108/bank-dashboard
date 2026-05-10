@@ -84,11 +84,11 @@ td.negative { color: #22c55e; }
       <div class="value" id="cardBegin">--<span class="unit">万元</span></div>
     </div>
     <div class="card end">
-      <div class="label">5月末预测余额</div>
+      <div class="label">当前余额</div>
       <div class="value" id="cardEnd">--<span class="unit">万元</span></div>
     </div>
     <div class="card net">
-      <div class="label">5月净增</div>
+      <div class="label">5月末预测余额</div>
       <div class="value" id="cardNet">--<span class="unit">万元</span></div>
     </div>
     <div class="card rate">
@@ -97,9 +97,9 @@ td.negative { color: #22c55e; }
     </div>
   </div>
 
-  <!-- 主图表：各支行年初 vs 5月余额对比 -->
+  <!-- 主图表：各支行年初 vs 当前 vs 5月余额对比 -->
   <div class="chart-panel">
-    <h3>📊 各支行普惠余额：年初余额 vs 5月末预测余额（万元）</h3>
+    <h3>📊 各支行普惠余额：年初余额 → 当前余额 → 5月末预测余额（万元）</h3>
     <div class="chart-wrap" id="chartMain"></div>
   </div>
 
@@ -124,6 +124,7 @@ td.negative { color: #22c55e; }
           <tr>
             <th>支行归属</th>
             <th>年初余额（万元）</th>
+            <th>当前余额（万元）</th>
             <th>5月末预测余额（万元）</th>
             <th>5月净增（万元）</th>
             <th>5月序时完成率</th>
@@ -162,15 +163,15 @@ let showTotal = false;
 
 // 初始数据（从Excel提取）
 const INITIAL_DATA = [
-  { name: '房山支行', begin: 24245.00, end: 27260.00, net: 3015.00, seq: 1.7977, isTotal: false, isAdjust: false },
-  { name: '自贸支行', begin: 10458.00, end: 12698.00, net: 2240.00, seq: 1.7388, isTotal: false, isAdjust: false },
-  { name: '大兴支行', begin: 15142.23, end: 17346.84, net: 2204.61, seq: 1.3145, isTotal: false, isAdjust: false },
-  { name: '榆垡支行', begin: 2045.00, end: 3845.00, net: 1800.00, seq: 1.2865, isTotal: false, isAdjust: false },
-  { name: '营业部', begin: 20314.00, end: 19979.99, net: -334.01, seq: -0.1868, isTotal: false, isAdjust: false },
-  { name: '旧宫支行', begin: 25924.71, end: 23984.48, net: -1940.23, seq: -1.3598, isTotal: false, isAdjust: false },
-  { name: '礼贤支行', begin: 17537.22, end: 14373.13, net: -3164.09, seq: -2.8950, isTotal: false, isAdjust: false },
-  { name: '调出人员', begin: 9425.59, end: 5655.59, net: -3770.00, seq: null, isTotal: false, isAdjust: true },
-  { name: '总计', begin: 125091.76, end: 125143.03, net: 51.27, seq: 0.0050, isTotal: true, isAdjust: false }
+  { name: '房山支行', begin: 24245.00, current: 27560.00, end: 27260.00, net: 3015.00, seq: 1.7977, isTotal: false, isAdjust: false },
+  { name: '自贸支行', begin: 10458.00, current: 12198.00, end: 12698.00, net: 2240.00, seq: 1.7388, isTotal: false, isAdjust: false },
+  { name: '大兴支行', begin: 15142.23, current: 17046.84, end: 17346.84, net: 2204.61, seq: 1.3145, isTotal: false, isAdjust: false },
+  { name: '榆垡支行', begin: 2045.00, current: 3345.00, end: 3845.00, net: 1800.00, seq: 1.2865, isTotal: false, isAdjust: false },
+  { name: '营业部', begin: 20314.00, current: 18979.99, end: 19979.99, net: -334.01, seq: -0.1868, isTotal: false, isAdjust: false },
+  { name: '旧宫支行', begin: 25924.71, current: 23723.82, end: 23984.48, net: -1940.23, seq: -1.3598, isTotal: false, isAdjust: false },
+  { name: '礼贤支行', begin: 17537.22, current: 14153.13, end: 14373.13, net: -3164.09, seq: -2.8950, isTotal: false, isAdjust: false },
+  { name: '调出人员', begin: 9425.59, current: 5655.59, end: 5655.59, net: -3770.00, seq: null, isTotal: false, isAdjust: true },
+  { name: '总计', begin: 125091.76, current: 122662.37, end: 125143.03, net: 51.27, seq: 0.0050, isTotal: true, isAdjust: false }
 ];
 
 rawData = INITIAL_DATA;
@@ -221,16 +222,8 @@ function renderAll() {
 function renderCards() {
   const total = getTotalRow();
   document.getElementById('cardBegin').innerHTML = total ? fmt(total.begin, 0) + '<span class="unit">万元</span>' : '--';
-  document.getElementById('cardEnd').innerHTML = total ? fmt(total.end, 0) + '<span class="unit">万元</span>' : '--';
-  const net = total ? total.net : 0;
-  const netEl = document.getElementById('cardNet');
-  netEl.innerHTML = fmt(net, 0) + '<span class="unit">万元</span>';
-  const changeEl = netEl.parentElement.querySelector('.change');
-  if (changeEl) changeEl.remove();
-  if (net > 0) netEl.insertAdjacentHTML('afterend', '<div class="change up">较年初 +' + fmt(net, 0) + ' 万元</div>');
-  else if (net < 0) netEl.insertAdjacentHTML('afterend', '<div class="change down">较年初 ' + fmt(net, 0) + ' 万元</div>');
-  else netEl.insertAdjacentHTML('afterend', '<div class="change" style="color:#8899b4">较年初持平</div>');
-
+  document.getElementById('cardEnd').innerHTML = total ? fmt(total.current, 0) + '<span class="unit">万元</span>' : '--';
+  document.getElementById('cardNet').innerHTML = total ? fmt(total.end, 0) + '<span class="unit">万元</span>' : '--';
   document.getElementById('cardRate').innerHTML = total && total.seq != null ? fmt(total.seq * 100, 2) + '<span class="unit">%</span>' : '--';
 }
 
@@ -238,6 +231,7 @@ function renderMainChart() {
   const data = getFilteredData();
   const names = data.map(d => d.name.replace('支行', '').replace('经济技术开发区',''));
   const beginVals = data.map(d => d.begin);
+  const currentVals = data.map(d => d.current);
   const endVals = data.map(d => d.end);
 
   const option = {
@@ -261,7 +255,7 @@ function renderMainChart() {
       }
     },
     legend: {
-      data: ['年初余额', '5月末预测余额'],
+      data: ['年初余额', '当前余额', '5月末预测余额'],
       textStyle: { color: '#8899b4' },
       top: 0
     },
@@ -286,7 +280,15 @@ function renderMainChart() {
         type: 'bar',
         data: beginVals,
         itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
-        barWidth: '30%',
+        barWidth: '25%',
+        label: { show: true, position: 'top', color: '#8899b4', fontSize: 10, formatter: p => fmt(p.value, 0) }
+      },
+      {
+        name: '当前余额',
+        type: 'bar',
+        data: currentVals,
+        itemStyle: { color: '#f59e0b', borderRadius: [4,4,0,0] },
+        barWidth: '25%',
         label: { show: true, position: 'top', color: '#8899b4', fontSize: 10, formatter: p => fmt(p.value, 0) }
       },
       {
@@ -294,7 +296,7 @@ function renderMainChart() {
         type: 'bar',
         data: endVals,
         itemStyle: { color: '#10b981', borderRadius: [4,4,0,0] },
-        barWidth: '30%',
+        barWidth: '25%',
         label: { show: true, position: 'top', color: '#8899b4', fontSize: 10, formatter: p => fmt(p.value, 0) }
       }
     ]
@@ -411,6 +413,7 @@ function renderTable() {
     html += '<tr class="' + cls + '">';
     html += '<td>' + (d.isTotal ? '<b>📌 ' + d.name + '</b>' : d.name) + '</td>';
     html += '<td class="num">' + fmt(d.begin, 2) + '</td>';
+    html += '<td class="num">' + fmt(d.current, 2) + '</td>';
     html += '<td class="num">' + fmt(d.end, 2) + '</td>';
     html += '<td class="num ' + netCls + '">' + (d.net > 0 ? '+' : '') + fmt(d.net, 2) + '</td>';
     html += '<td class="num ' + seqCls + '">' + (d.seq != null ? fmt(d.seq * 100, 2) + '%' : '--') + '</td>';
@@ -454,12 +457,14 @@ function handleFileUpload(event) {
         if (!row || row.length < 3) continue;
         const name = String(row[0] || '').trim();
         const begin = parseFloat(row[1]) || 0;
-        const end = parseFloat(row[2]) || 0;
-        const seqVal = row[3] != null ? parseFloat(row[3]) : null;
+        const current = parseFloat(row[2]) || 0;
+        const end = parseFloat(row[3]) || 0;
+        const seqVal = row[4] != null ? parseFloat(row[4]) : null;
         const net = end - begin;
         newData.push({
           name,
           begin,
+          current,
           end,
           net,
           seq: seqVal,
