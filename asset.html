@@ -124,7 +124,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
 
 <div class="header">
   <h1>兴业银行北京经开区中支 · 资产储备动态看板</h1>
-  <div class="sub">数据来源：开发区资产储备.xlsx · 截至2026年5月12日 · <button class="btn-s" onclick="toggleAdjust()" id="btnAdjust" style="margin-left:8px">隐藏调出人员</button></div>
+  <div class="sub">数据来源：开发区资产储备.xlsx · 截至2026年5月19日 · <button class="btn-s" onclick="toggleAdjust()" id="btnAdjust" style="margin-left:8px">隐藏调出人员</button></div>
 </div>
 
 <div class="container">
@@ -138,7 +138,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
 </div>
 
 <div class="section">
-  <h3>📊 各支行资产余额变化：4月末 → 当前（5月12日）（万元）</h3>
+  <h3>📊 各支行资产余额变化：4月末 → 当前（5月19日）（万元）</h3>
   <div class="chart-wrap" id="chartCbal"></div>
 </div>
 
@@ -291,7 +291,7 @@ function toggleAdjust(){showAdjust=!showAdjust;document.getElementById('btnAdjus
 function renderCards(){
   var t=balData[balData.length-1];
   var h='';
-  h+='<div class="card c0"><div class="label">当前余额（5月12日）</div><div class="value">'+fmt(t.cbal/10000,1)+'<span style="font-size:12px;color:#8899b4"> 亿元</span></div><div class="subv">表内资产余额（4月末）：'+fmt(t.balance/10000,1)+'亿 | 较4月末：'+(t.cbal>=t.balance?'+':'')+fmt((t.cbal-t.balance)/10000,1)+'亿</div></div>';
+  h+='<div class="card c0"><div class="label">当前余额（5月19日）</div><div class="value">'+fmt(t.cbal/10000,1)+'<span style="font-size:12px;color:#8899b4"> 亿元</span></div><div class="subv">表内资产余额（4月末）：'+fmt(t.balance/10000,1)+'亿 | 较4月末：'+(t.cbal>=t.balance?'+':'')+fmt((t.cbal-t.balance)/10000,1)+'亿</div></div>';
   h+='<div class="card c1"><div class="label">年初资产余额</div><div class="value">'+fmt(t.begin/10000,1)+'<span style="font-size:12px;color:#8899b4"> 亿元</span></div></div>';
   h+='<div class="card c2"><div class="label">表内资产余额（4月末）</div><div class="value">'+fmt(t.balance/10000,1)+'<span style="font-size:12px;color:#8899b4"> 亿元</span></div><div class="subv">较年初：'+(t.balance>=t.begin?'+':'')+fmt((t.balance-t.begin)/10000,1)+'亿</div></div>';
   h+='<div class="card c3"><div class="label">考核余额</div><div class="value">'+fmt(t.exam/10000,1)+'<span style="font-size:12px;color:#8899b4"> 亿元</span></div><div class="subv">较年初：'+(t.exam>=t.begin?'+':'')+fmt((t.exam-t.begin)/10000,1)+'亿</div></div>';
@@ -322,13 +322,13 @@ function renderCbal(){
   var ns=d.map(function(x){return x.name.replace('支行','');});
   var opt=gopt();
   opt.tooltip={trigger:'axis',axisPointer:{type:'shadow'},backgroundColor:'rgba(10,22,40,.95)',borderColor:'rgba(0,150,255,.3)',textStyle:{color:'#e8ecf1',fontSize:12},formatter:function(ps){var s='<b>'+ps[0].axisValue+'</b><br/>';ps.forEach(function(p){s+='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+p.color+';margin-right:4px;"></span>'+p.seriesName+'：<b>'+fmt(p.value/10000,1)+'</b> 亿<br/>';});return s;}};
-  opt.legend={data:['4月末余额','当前余额（5.12）'],textStyle:{color:'#8899b4',fontSize:m?10:12},top:0};
+  opt.legend={data:['4月末余额','当前余额（5.19）'],textStyle:{color:'#8899b4',fontSize:m?10:12},top:0};
   opt.grid={left:'3%',right:'6%',bottom:m?'12%':'8%',top:m?'16%':'12%',containLabel:!0};
   opt.xAxis={type:'category',data:ns,axisLine:{lineStyle:{color:'rgba(255,255,255,.15)'}},axisLabel:{color:'#8899b4',fontSize:m?9:12,rotate:m?25:0},axisTick:{show:!1}};
   opt.yAxis={type:'value',name:'亿元',nameTextStyle:{color:'#8899b4'},axisLabel:{color:'#8899b4',fontSize:m?9:11,formatter:function(v){return(v/10000).toFixed(1);}},splitLine:{lineStyle:{color:'rgba(255,255,255,.06)'}}};
   opt.series=[
     {name:'4月末余额',type:'bar',data:d.map(function(x){return x.balance;}),itemStyle:{color:'#f59e0b',borderRadius:[4,4,0,0]},barWidth:m?'30%':'25%'},
-    {name:'当前余额（5.12）',type:'bar',data:d.map(function(x){return x.cbal;}),itemStyle:{color:'#06b6d4',borderRadius:[4,4,0,0]},barWidth:m?'30%':'25%'}
+    {name:'当前余额（5.19）',type:'bar',data:d.map(function(x){return x.cbal;}),itemStyle:{color:'#06b6d4',borderRadius:[4,4,0,0]},barWidth:m?'30%':'25%'}
   ];
   c7.setOption(opt,!0);
 }
